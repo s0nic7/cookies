@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ func contains(values []string, value string) bool {
 	return false
 }
 
-func findCookies(url *url.URL, name string, browsers []string, logger *Logger) (results []*kooky.Cookie) {
+func findCookies(url *url.URL, name string, browsers []string, logger *Logger, profile string)) (results []*kooky.Cookie) {
 	logger.Printf("Looking for browsers %v", browsers)
 	logger.Printf("Looking for cookies for URL %s", url)
 	filter := currentlyAppliesToURLAndName(url, name, logger.RequireVerbosity(2))
@@ -32,6 +33,14 @@ func findCookies(url *url.URL, name string, browsers []string, logger *Logger) (
 			logger.Printf("Looking for %s cookie stores", name)
 			kooky.ConcurrentlyVisitStores(finder, func(store kooky.CookieStore) {
 				logger.Printf("Loading cookies from %v", store)
+				if profile != "" {
+					logger.Printf("Looking for profile %s", profile)
+					match, _ := regexp.MatchString(profile, store.Profile())
+					if !match {
+						return
+					}
+					logger.Printf("Found profile %s", store.Profile())
+				}
 				err := store.VisitCookies(func(cookie *kooky.Cookie, initializeValue kooky.CookieValueInitializer) error {
 					if !filter(cookie) {
 						return nil
